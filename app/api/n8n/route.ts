@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const response = await fetch('https://benziad.app.n8n.cloud/webhook/51893d12-15bf-4ea5-89d6-a660b9e70fa7', {
+    const response = await fetch('https://benzaid.app.n8n.cloud/webhook/2e1dd36d-1458-4242-9462-0adfe5b12b1f', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

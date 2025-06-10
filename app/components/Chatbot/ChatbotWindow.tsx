@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
-import { createChat } from '@n8n/chat';
-import '@n8n/chat/style.css';
+import { useEffect } from "react";
+import { createChat } from "@n8n/chat";
+import "@n8n/chat/style.css";
 import { GoogleDriveFile } from "../types";
 import { FaTimes } from "react-icons/fa";
 
@@ -15,32 +15,22 @@ export default function ChatbotWindow({
   isOpen,
   onClose,
   files,
-  onDocumentRecommended
+  onDocumentRecommended,
 }: ChatbotWindowProps) {
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const containerId = "n8n-chat-container";
 
   useEffect(() => {
-    if (isOpen && chatContainerRef.current) {
+    if (isOpen) {
       const chat = createChat({
-        webhookUrl: 'https://benziad.app.n8n.cloud/webhook/e9adfc1e-b514-4eef-996b-1fa6d6e14053/chat',
-        container: chatContainerRef.current,
-        config: {
-          theme: {
-            primaryColor: '#10B981',
-            headerColor: '#10B981',
-            headerTextColor: '#FFFFFF',
-          },
-          context: {
-            documents: files,
-          },
+        webhookUrl: "https://benzaid.app.n8n.cloud/webhook/232f677d-6df9-403c-b53b-57ca7542d831/chat",
+        target: `#${containerId}`,
+        theme: {
+          primaryColor: "#10B981",
+          headerColor: "#10B981",
+          headerTextColor: "#FFFFFF",
         },
-        hooks: {
-          onMessageReceived: (message: { documentId: string }) => {
-            if (message.documentId) {
-              onDocumentRecommended(message.documentId);
-            }
-          },
-        },
+      
+        
       });
 
       return () => {
@@ -59,7 +49,7 @@ export default function ChatbotWindow({
           <FaTimes />
         </button>
       </div>
-      <div ref={chatContainerRef} className="h-96"></div>
+      <div id={containerId} className="h-96"></div>
     </div>
   );
 }
