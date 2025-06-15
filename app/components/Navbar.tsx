@@ -3,15 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { FaBalanceScale, FaFileAlt, FaQuestion, FaUser, FaSignInAlt, FaBars, FaTimes } from "react-icons/fa";
+import { FaBalanceScale, FaFileAlt, FaQuestion, FaUser, FaSignInAlt, FaBars, FaTimes, FaSignOutAlt } from "react-icons/fa";
+import { useAuth } from "@/app/context/AuthContext";
 import "@/app/styles/navbar.css";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const [isLoggedIn] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   const navLinks = [
     { href: "/", label: "الصفحة الرئيسية", icon: <FaBalanceScale /> },
@@ -41,11 +51,17 @@ const Navbar = () => {
             </Link>
           ))}
 
-          {isLoggedIn ? (
-            <Link href="/dashboard" className="navbar-button dashboard-btn">
-              <FaUser />
-              <span>لوحة التحكم</span>
-            </Link>
+          {isAuthenticated ? (
+            <div className="navbar-auth-group">
+              <Link href="/dashboard" className="navbar-button dashboard-btn">
+                <FaUser />
+                <span>{user?.name || 'لوحة التحكم'}</span>
+              </Link>
+              <button onClick={handleLogout} className="navbar-button logout-btn">
+                <FaSignOutAlt />
+                <span>خروج</span>
+              </button>
+            </div>
           ) : (
             <Link href="/auth/signin" className="navbar-button signin-btn">
               <FaSignInAlt />
@@ -77,11 +93,17 @@ const Navbar = () => {
             ))}
 
             <div className="navbar-mobile-auth">
-              {isLoggedIn ? (
-                <Link href="/dashboard" className="navbar-button dashboard-btn" onClick={toggleMenu}>
-                  <FaUser />
-                  <span>لوحة التحكم</span>
-                </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link href="/dashboard" className="navbar-button dashboard-btn" onClick={toggleMenu}>
+                    <FaUser />
+                    <span>{user?.name || 'لوحة التحكم'}</span>
+                  </Link>
+                  <button onClick={handleLogout} className="navbar-button logout-btn">
+                    <FaSignOutAlt />
+                    <span>خروج</span>
+                  </button>
+                </>
               ) : (
                 <Link href="/auth/signin" className="navbar-button signin-btn" onClick={toggleMenu}>
                   <FaSignInAlt />

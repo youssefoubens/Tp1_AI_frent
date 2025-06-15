@@ -1,22 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FaSignInAlt, FaSpinner, FaGoogle, FaFacebook } from "react-icons/fa";
 import { useAuth } from "@/app/context/AuthContext";
+import { createSupabaseClient } from "@/app/lib/supabase";
 import "@/app/styles/signin.css";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, isLoading, error } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isLoading, error, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createSupabaseClient();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+      router.push(redirectTo);
+    }
+  }, [isAuthenticated, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
       await login(email, password);
+      // Redirect will be handled by the AuthContext
     } catch (err) {
       console.error("Login error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error(`${provider} login error:`, error);
+      }
+    } catch (err) {
+      console.error(`${provider} login error:`, err);
     }
   };
 
@@ -61,8 +98,8 @@ export default function SignInPage() {
           </Link>
         </div>
 
-        <button type="submit" disabled={isLoading} className="submit-button">
-          {isLoading ? (
+        <button type="submit" disabled={isLoading || isSubmitting} className="submit-button">
+          {(isLoading || isSubmitting) ? (
             <>
               <FaSpinner className="spinner-icon" />
               جاري تسجيل الدخول...
@@ -81,11 +118,19 @@ export default function SignInPage() {
       </div>
 
       <div className="social-buttons">
-        <button type="button" className="social-button google">
+        <button
+          type="button"
+          className="social-button google"
+          onClick={() => handleSocialLogin('google')}
+        >
           <FaGoogle />
           <span>جوجل</span>
         </button>
-        <button type="button" className="social-button facebook">
+        <button
+          type="button"
+          className="social-button facebook"
+          onClick={() => handleSocialLogin('facebook')}
+        >
           <FaFacebook />
           <span>فيسبوك</span>
         </button>

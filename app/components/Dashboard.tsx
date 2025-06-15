@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { FaFileAlt, FaComments, FaUser, FaHistory, FaSignOutAlt, FaDownload } from "react-icons/fa";
+import { useAuth } from "@/app/context/AuthContext";
+import { useRouter } from "next/navigation";
 import "@/app/styles/dashboard.css";
 
 interface Consultation {
@@ -26,6 +28,15 @@ export default function DashboardPage() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, logout, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/signin');
+    }
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
     // Simulate loading data
@@ -71,9 +82,15 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSignOut = () => {
-    // In a real app, this would clear auth state and redirect
-    window.location.href = "/";
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      // Redirect will be handled by the AuthContext
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Fallback redirect
+      router.push("/");
+    }
   };
 
   return (
@@ -88,8 +105,8 @@ export default function DashboardPage() {
               <FaUser />
             </div>
             <div>
-              <div className="user-name">اسم المستخدم</div>
-              <div className="user-email">user@example.com</div>
+              <div className="user-name">{user?.name || 'المستخدم'}</div>
+              <div className="user-email">{user?.email || ''}</div>
             </div>
           </div>
 

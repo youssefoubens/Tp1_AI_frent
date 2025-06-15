@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FaUserPlus, FaSpinner } from "react-icons/fa";
+import { useAuth } from "@/app/context/AuthContext";
 import "@/app/styles/signup.css";
 
 export default function SignUpPage() {
@@ -13,8 +15,16 @@ export default function SignUpPage() {
     confirmPassword: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const { register, isLoading, error, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,28 +36,30 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
-      setError("كلمات المرور غير متطابقة");
       return;
     }
-    
+
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
-    setError("");
-    
+
     try {
-      // Simulate registration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setSuccess(true);
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-      });
+      await register(formData.name, formData.email, formData.password);
+
+      // If registration is successful and no error about email confirmation
+      if (!error || !error.includes("email")) {
+        setSuccess(true);
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+      }
     } catch (err) {
-      setError("حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى."+err);
+      console.error("Registration error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -57,7 +69,12 @@ export default function SignUpPage() {
     return (
       <div className="success-container">
         <h1 className="success-title">تم التسجيل بنجاح!</h1>
-        <p className="success-message">تم إنشاء حسابك بنجاح</p>
+        <p className="success-message">
+          {error && error.includes("email")
+            ? "تم إنشاء حسابك بنجاح. يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب قبل تسجيل الدخول."
+            : "تم إنشاء حسابك بنجاح"
+          }
+        </p>
         <Link
           href="/auth/signin"
           className="success-button"
@@ -74,6 +91,10 @@ export default function SignUpPage() {
 
       {error && (
         <div className="error-message">{error}</div>
+      )}
+
+      {formData.password !== formData.confirmPassword && formData.confirmPassword && (
+        <div className="error-message">كلمات المرور غير متطابقة</div>
       )}
 
       <form onSubmit={handleSubmit} className="signup-form">
@@ -147,10 +168,10 @@ export default function SignUpPage() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoading || formData.password !== formData.confirmPassword}
           className="submit-button"
         >
-          {isSubmitting ? (
+          {(isSubmitting || isLoading) ? (
             <>
               <FaSpinner className="spinner-icon" />
               جاري إنشاء الحساب...

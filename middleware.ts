@@ -1,27 +1,54 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import type { Database } from '@/app/lib/supabase';
 
-const protectedRoutes = ["/kl"];
-const authRoutes = ["/auth/signin", "/auth/signup"];
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient<Database>({ req, res });
 
-export function middleware(request: NextRequest) {
-  const currentUser = request.cookies.get("currentUser")?.value;
+  try {
+    // Refresh session if expired - required for Server Components
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-  if ( protectedRoutes.some((route) =>  request.nextUrl.pathname.startsWith(route) ) && !currentUser)
-  {
-    const response = NextResponse.redirect(
-      new URL("/auth/signin", request.url)
-    );
-    response.cookies.delete("currentUser");
-    return response;
+    // Protect dashboard routes
+    if (req.nextUrl.pathname.startsWith('/dashboard') && !session) {
+      const redirectUrl = new URL('/auth/signin', req.url);
+      redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Redirect authenticated users away from auth pages
+    if (session && (
+      req.nextUrl.pathname.startsWith('/auth/signin') ||
+      req.nextUrl.pathname.startsWith('/auth/signup')
+    )) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
+    return res;
+  } catch (error) {
+    // If there's an error with the session, redirect to signin
+    console.error('Middleware auth error:', error);
+    if (req.nextUrl.pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/auth/signin', req.url));
+    }
+    return res;
   }
-
-  if (
-    authRoutes.includes(request.nextUrl.pathname) && 
-    currentUser
-  ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  return NextResponse.next();
 }
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+  ],
+};

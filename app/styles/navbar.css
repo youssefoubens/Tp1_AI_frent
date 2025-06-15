@@ -105,6 +105,22 @@
     background-color: #219653;
 }
 
+.logout-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background-color: #c0392b;
+}
+
+.navbar-auth-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
 .navbar-toggle {
     display: none;
     background: none;
